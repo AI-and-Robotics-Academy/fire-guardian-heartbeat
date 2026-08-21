@@ -21,7 +21,7 @@ async function loadMapsApi(): Promise<void> {
 }
 
 function loadScript(): Promise<void> {
-  if (window.google?.maps?.Map || window.google?.maps?.importLibrary) return Promise.resolve();
+  if (window.google?.maps) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
     const existing = document.getElementById(SCRIPT_ID);
