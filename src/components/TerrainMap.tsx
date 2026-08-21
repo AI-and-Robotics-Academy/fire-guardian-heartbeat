@@ -1,5 +1,5 @@
 /// <reference types="google.maps" />
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RISK_HEX, assessRisk, type SensorReading } from "@/lib/sensors";
 
 declare global {
