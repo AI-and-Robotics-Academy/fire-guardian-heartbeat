@@ -14,13 +14,14 @@ const SCRIPT_ID = "wildguard-google-maps";
 async function loadMapsApi(): Promise<void> {
   if (typeof window === "undefined") return;
   await loadScript();
-  // With loading=async the constructors only exist after importLibrary resolves.
-  await google.maps.importLibrary("maps");
-  await google.maps.importLibrary("core");
+  // With loading=async constructors may only exist after importLibrary resolves.
+  if (typeof window.google?.maps?.importLibrary === "function" && !window.google.maps.Map) {
+    await window.google.maps.importLibrary("maps");
+  }
 }
 
 function loadScript(): Promise<void> {
-  if (window.google?.maps?.importLibrary) return Promise.resolve();
+  if (window.google?.maps?.Map || window.google?.maps?.importLibrary) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
     const existing = document.getElementById(SCRIPT_ID);
