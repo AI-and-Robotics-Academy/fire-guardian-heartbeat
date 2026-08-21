@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { useEffect, useRef } from "react";
 import { RISK_HEX, assessRisk, type SensorReading } from "@/lib/sensors";
 
@@ -21,8 +22,8 @@ function loadMapsApi(): Promise<void> {
       existing.addEventListener("error", () => reject(new Error("maps load failed")));
       return;
     }
-    const key = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
-    const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
+    const key = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY'];
+    const channel = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID'];
     if (!key) {
       reject(new Error("Google Maps browser key is not configured"));
       return;
