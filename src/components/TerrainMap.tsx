@@ -62,15 +62,15 @@ function loadScript(): Promise<void> {
   });
 }
 
-function markerIcon(color: string, active: boolean) {
+function markerIcon(libs: MapsLibs, color: string, active: boolean) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
     <circle cx="17" cy="17" r="12" fill="${color}" fill-opacity="0.22"/>
     <circle cx="17" cy="17" r="7" fill="${color}" stroke="#12100e" stroke-width="${active ? 3 : 1.5}"/>
   </svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new google.maps.Size(34, 34),
-    anchor: new google.maps.Point(17, 17),
+    scaledSize: new libs.core.Size(34, 34),
+    anchor: new libs.core.Point(17, 17),
   };
 }
 
@@ -83,17 +83,20 @@ interface Props {
 export default function TerrainMap({ sensors, selectedId, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const libsRef = useRef<MapsLibs | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const circlesRef = useRef<Map<string, google.maps.Circle>>(new Map());
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     loadMapsApi()
-      .then(() => {
+      .then((libs) => {
         if (cancelled || !containerRef.current || mapRef.current) return;
-        mapRef.current = new google.maps.Map(containerRef.current, {
+        libsRef.current = libs;
+        mapRef.current = new libs.maps.Map(containerRef.current, {
           center: { lat: 34.28, lng: -118.13 },
           zoom: 10,
           mapTypeId: "terrain",
@@ -104,6 +107,7 @@ export default function TerrainMap({ sensors, selectedId, onSelect }: Props) {
             mapTypeIds: ["terrain", "satellite", "hybrid"],
           },
         });
+        setReady(true);
       })
       .catch((err) => console.error(err));
     return () => {
@@ -113,7 +117,8 @@ export default function TerrainMap({ sensors, selectedId, onSelect }: Props) {
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !window.google?.maps) return;
+    const libs = libsRef.current;
+    if (!ready || !map || !libs) return;
 
     for (const sensor of sensors) {
       const risk = assessRisk(sensor);
@@ -123,17 +128,17 @@ export default function TerrainMap({ sensors, selectedId, onSelect }: Props) {
 
       let marker = markersRef.current.get(sensor.id);
       if (!marker) {
-        marker = new google.maps.Marker({ position, map, title: `${sensor.id} · ${sensor.name}` });
+        marker = new libs.marker.Marker({ position, map, title: `${sensor.id} · ${sensor.name}` });
         marker.addListener("click", () => selectRef.current(sensor.id));
         markersRef.current.set(sensor.id, marker);
       }
-      marker.setIcon(markerIcon(color, active));
+      marker.setIcon(markerIcon(libs, color, active));
       marker.setZIndex(active ? 999 : Math.round(risk.score));
 
       let circle = circlesRef.current.get(sensor.id);
       const radius = 1200 + risk.score * 55;
       if (!circle) {
-        circle = new google.maps.Circle({
+        circle = new libs.maps.Circle({
           map,
           center: position,
           radius,
@@ -146,7 +151,7 @@ export default function TerrainMap({ sensors, selectedId, onSelect }: Props) {
       }
       circle.setOptions({ radius, strokeColor: color, fillColor: color });
     }
-  }, [sensors, selectedId]);
+  }, [sensors, selectedId, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
