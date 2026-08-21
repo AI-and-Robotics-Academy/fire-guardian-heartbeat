@@ -11,9 +11,16 @@ declare global {
 
 const SCRIPT_ID = "wildguard-google-maps";
 
-function loadMapsApi(): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.google?.maps) return Promise.resolve();
+async function loadMapsApi(): Promise<void> {
+  if (typeof window === "undefined") return;
+  await loadScript();
+  // With loading=async the constructors only exist after importLibrary resolves.
+  await google.maps.importLibrary("maps");
+  await google.maps.importLibrary("core");
+}
+
+function loadScript(): Promise<void> {
+  if (window.google?.maps?.importLibrary) return Promise.resolve();
 
   return new Promise((resolve, reject) => {
     const existing = document.getElementById(SCRIPT_ID);
