@@ -11,21 +11,27 @@ declare global {
 
 const SCRIPT_ID = "wildguard-google-maps";
 
-async function loadMapsApi(): Promise<void> {
-  if (typeof window === "undefined") return;
-  await loadScript();
-  // With loading=async the Map constructor can arrive slightly after the callback.
-  for (let i = 0; i < 60; i++) {
-    if (window.google?.maps?.Map) return;
-    try {
-      await window.google?.maps?.importLibrary?.("maps");
-    } catch {
-      /* library loader not ready yet — retry below */
-    }
-    if (window.google?.maps?.Map) return;
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error("Google Maps failed to initialize");
+interface MapsLibs {
+  maps: google.maps.MapsLibrary;
+  core: google.maps.CoreLibrary;
+  marker: google.maps.MarkerLibrary;
+}
+
+let libsPromise: Promise<MapsLibs> | null = null;
+
+/** Loads the JS API and resolves the concrete library constructors. */
+function loadMapsApi(): Promise<MapsLibs> {
+  libsPromise ??= (async () => {
+    await loadScript();
+    const g = window.google!;
+    const [maps, core, marker] = await Promise.all([
+      g.maps.importLibrary("maps") as Promise<google.maps.MapsLibrary>,
+      g.maps.importLibrary("core") as Promise<google.maps.CoreLibrary>,
+      g.maps.importLibrary("marker") as Promise<google.maps.MarkerLibrary>,
+    ]);
+    return { maps, core, marker };
+  })();
+  return libsPromise;
 }
 
 function loadScript(): Promise<void> {
