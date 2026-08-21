@@ -14,10 +14,18 @@ const SCRIPT_ID = "wildguard-google-maps";
 async function loadMapsApi(): Promise<void> {
   if (typeof window === "undefined") return;
   await loadScript();
-  // With loading=async constructors may only exist after importLibrary resolves.
-  if (typeof window.google?.maps?.importLibrary === "function" && !window.google.maps.Map) {
-    await window.google.maps.importLibrary("maps");
+  // With loading=async the Map constructor can arrive slightly after the callback.
+  for (let i = 0; i < 60; i++) {
+    if (window.google?.maps?.Map) return;
+    try {
+      await window.google?.maps?.importLibrary?.("maps");
+    } catch {
+      /* library loader not ready yet — retry below */
+    }
+    if (window.google?.maps?.Map) return;
+    await new Promise((r) => setTimeout(r, 100));
   }
+  throw new Error("Google Maps failed to initialize");
 }
 
 function loadScript(): Promise<void> {
