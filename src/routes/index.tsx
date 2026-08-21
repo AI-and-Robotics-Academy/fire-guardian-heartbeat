@@ -37,8 +37,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const [sensors, setSensors] = useState<SensorReading[]>(() => generateReadings());
-  const [trend, setTrend] = useState<TrendPoint[]>(() => generateTrend());
+  // Initialize empty to avoid SSR hydration mismatch from random telemetry.
+  const [sensors, setSensors] = useState<SensorReading[]>([]);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
 
@@ -47,8 +48,8 @@ function Dashboard() {
       setSensors(generateReadings());
       setUpdatedAt(new Date().toLocaleTimeString());
     };
-    tick();
     setTrend(generateTrend());
+    tick();
     const id = window.setInterval(tick, 5000);
     return () => window.clearInterval(id);
   }, []);
@@ -56,7 +57,7 @@ function Dashboard() {
   const online = sensors.filter((s) => s.online);
   const network = useMemo(() => {
     if (online.length === 0) return null;
-    const avgTemp = online.reduce((a, s) => a + s.temperatureC, 0) / online.length;
+    const avgTemp = online.reduce((a, s) => a + s.temperatureF, 0) / online.length;
     const avgHum = online.reduce((a, s) => a + s.humidityPct, 0) / online.length;
     const scores = online.map((s) => assessRisk(s));
     const worst = scores.reduce((a, b) => (b.score > a.score ? b : a));
@@ -95,7 +96,7 @@ function Dashboard() {
         <StatCard
           icon={<Thermometer className="size-4" />}
           label="Avg temperature"
-          value={network ? `${network.avgTemp.toFixed(1)}°C` : "—"}
+          value={network ? `${network.avgTemp.toFixed(1)}°F` : "—"}
           accent="text-temp"
           note="Across reporting nodes"
         />
@@ -116,7 +117,7 @@ function Dashboard() {
         <StatCard
           icon={<Radio className="size-4" />}
           label="Mesh health"
-          value={`${Math.round((online.length / sensors.length) * 100)}%`}
+          value={`${Math.round((online.length / Math.max(1, sensors.length)) * 100)}%`}
           accent="text-risk-low"
           note="Nodes online"
         />
@@ -205,11 +206,11 @@ function SensorDetail({ sensor }: { sensor: SensorReading }) {
         <RiskBadge level={risk.level} label={risk.label} />
       </div>
       <dl className="grid grid-cols-2 gap-3 font-mono text-sm tabular-nums">
-        <Detail label="Temperature" value={`${sensor.temperatureC.toFixed(1)} °C`} />
+        <Detail label="Temperature" value={`${sensor.temperatureF.toFixed(1)} °F`} />
         <Detail label="Humidity" value={`${sensor.humidityPct} %`} />
         <Detail label="Elevation" value={`${sensor.elevationM} m`} />
         <Detail label="Battery" value={`${Math.min(100, sensor.batteryPct)} %`} />
-        <Detail label="Trend" value={`${sensor.tempTrendCPerHr.toFixed(1)} °C/h`} />
+        <Detail label="Trend" value={`${sensor.tempTrendFPerHr.toFixed(1)} °F/h`} />
         <Detail label="Last seen" value={`${sensor.lastSeenSecondsAgo}s ago`} />
       </dl>
       <div className="space-y-2">

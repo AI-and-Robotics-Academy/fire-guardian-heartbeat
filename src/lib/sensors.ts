@@ -11,10 +11,10 @@ export interface SensorReading {
   lat: number;
   lng: number;
   elevationM: number;
-  temperatureC: number;
+  temperatureF: number;
   humidityPct: number;
-  /** Degrees C change over the last hour — feeds the composite score. */
-  tempTrendCPerHr: number;
+  /** Degrees F change over the last hour — feeds the composite score. */
+  tempTrendFPerHr: number;
   batteryPct: number;
   online: boolean;
   lastSeenSecondsAgo: number;
@@ -29,11 +29,15 @@ export interface RiskAssessment {
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
+export const toFahrenheit = (c: number) => Math.round((c * 9) / 5 + 32);
+
 /** Composite fire-risk score (0-100) from heat, dryness and rate of change. */
 export function assessRisk(reading: SensorReading): RiskAssessment {
-  const heat = clamp01((reading.temperatureC - 14) / 30);
+  // 14°C ≈ 57°F baseline; 30°C span ≈ 54°F span.
+  const heat = clamp01((reading.temperatureF - 57) / 54);
   const dryness = clamp01((62 - reading.humidityPct) / 50);
-  const momentum = clamp01(reading.tempTrendCPerHr / 5);
+  // 5°C/hr ≈ 9°F/hr.
+  const momentum = clamp01(reading.tempTrendFPerHr / 9);
 
   const drivers = [
     { label: "Heat", contribution: Math.round(heat * 45) },
@@ -80,14 +84,14 @@ interface SensorSeed {
 }
 
 const SEEDS: SensorSeed[] = [
-  { id: "PI-01", name: "Ridge Crest", zone: "Angeles NF — North", lat: 34.3402, lng: -118.0455, elevationM: 1712, baseTemp: 36, baseHumidity: 14 },
-  { id: "PI-02", name: "Chantry Flat", zone: "Angeles NF — South", lat: 34.1955, lng: -118.0233, elevationM: 549, baseTemp: 33, baseHumidity: 22 },
-  { id: "PI-03", name: "Big Tujunga", zone: "Angeles NF — West", lat: 34.2925, lng: -118.1893, elevationM: 786, baseTemp: 31, baseHumidity: 27 },
-  { id: "PI-04", name: "Mount Wilson", zone: "Summit Relay", lat: 34.2259, lng: -118.0571, elevationM: 1742, baseTemp: 27, baseHumidity: 34 },
-  { id: "PI-05", name: "Devil's Canyon", zone: "Angeles NF — Core", lat: 34.2831, lng: -117.9812, elevationM: 1105, baseTemp: 38, baseHumidity: 11 },
-  { id: "PI-06", name: "Placerita Creek", zone: "Foothill Edge", lat: 34.3861, lng: -118.4548, elevationM: 432, baseTemp: 29, baseHumidity: 41 },
-  { id: "PI-07", name: "Sand Canyon", zone: "Foothill Edge", lat: 34.4113, lng: -118.3711, elevationM: 512, baseTemp: 34, baseHumidity: 19 },
-  { id: "PI-08", name: "Monrovia Peak", zone: "Angeles NF — South", lat: 34.2216, lng: -117.9585, elevationM: 1613, baseTemp: 25, baseHumidity: 48 },
+  { id: "PI-01", name: "Ridge Crest", zone: "Angeles NF — North", lat: 34.3402, lng: -118.0455, elevationM: 1712, baseTemp: 97, baseHumidity: 14 },
+  { id: "PI-02", name: "Chantry Flat", zone: "Angeles NF — South", lat: 34.1955, lng: -118.0233, elevationM: 549, baseTemp: 91, baseHumidity: 22 },
+  { id: "PI-03", name: "Big Tujunga", zone: "Angeles NF — West", lat: 34.2925, lng: -118.1893, elevationM: 786, baseTemp: 88, baseHumidity: 27 },
+  { id: "PI-04", name: "Mount Wilson", zone: "Summit Relay", lat: 34.2259, lng: -118.0571, elevationM: 1742, baseTemp: 81, baseHumidity: 34 },
+  { id: "PI-05", name: "Devil's Canyon", zone: "Angeles NF — Core", lat: 34.2831, lng: -117.9812, elevationM: 1105, baseTemp: 100, baseHumidity: 11 },
+  { id: "PI-06", name: "Placerita Creek", zone: "Foothill Edge", lat: 34.3861, lng: -118.4548, elevationM: 432, baseTemp: 84, baseHumidity: 41 },
+  { id: "PI-07", name: "Sand Canyon", zone: "Foothill Edge", lat: 34.4113, lng: -118.3711, elevationM: 512, baseTemp: 93, baseHumidity: 19 },
+  { id: "PI-08", name: "Monrovia Peak", zone: "Angeles NF — South", lat: 34.2216, lng: -117.9585, elevationM: 1613, baseTemp: 77, baseHumidity: 48 },
 ];
 
 const jitter = (spread: number) => (Math.random() - 0.5) * spread;
@@ -103,9 +107,9 @@ export function generateReadings(): SensorReading[] {
       lat: seed.lat,
       lng: seed.lng,
       elevationM: seed.elevationM,
-      temperatureC: Math.round((seed.baseTemp + jitter(3)) * 10) / 10,
+      temperatureF: Math.round((seed.baseTemp + jitter(5)) * 10) / 10,
       humidityPct: Math.max(4, Math.round(seed.baseHumidity + jitter(6))),
-      tempTrendCPerHr: Math.round((jitter(4) + (seed.baseTemp > 34 ? 2.2 : 0.4)) * 10) / 10,
+      tempTrendFPerHr: Math.round((jitter(7) + (seed.baseTemp > 93 ? 4 : 0.7)) * 10) / 10,
       batteryPct: 62 + Math.round(jitter(30)) + 15,
       online,
       lastSeenSecondsAgo: online ? Math.round(Math.random() * 45) : 1420,
@@ -115,7 +119,7 @@ export function generateReadings(): SensorReading[] {
 
 export interface TrendPoint {
   time: string;
-  temperatureC: number;
+  temperatureF: number;
   humidityPct: number;
   risk: number;
 }
@@ -125,17 +129,18 @@ export function generateTrend(): TrendPoint[] {
   return Array.from({ length: 24 }, (_, h) => {
     const hour = (h + 1) % 24;
     const diurnal = Math.sin(((hour - 4) / 24) * Math.PI * 2);
-    const temperatureC = Math.round((26 + diurnal * 9 + jitter(1.6)) * 10) / 10;
+    // 26°C ≈ 79°F baseline; 9°C range ≈ 16°F range.
+    const temperatureF = Math.round((79 + diurnal * 16 + jitter(3)) * 10) / 10;
     const humidityPct = Math.max(6, Math.round(32 - diurnal * 16 + jitter(4)));
     const risk = assessRisk({
       ...SEEDS[0]!,
-      temperatureC,
+      temperatureF,
       humidityPct,
-      tempTrendCPerHr: diurnal * 3,
+      tempTrendFPerHr: diurnal * 5.4,
       batteryPct: 90,
       online: true,
       lastSeenSecondsAgo: 5,
     } as SensorReading).score;
-    return { time: `${String(hour).padStart(2, "0")}:00`, temperatureC, humidityPct, risk };
+    return { time: `${String(hour).padStart(2, "0")}:00`, temperatureF, humidityPct, risk };
   });
 }

@@ -46,8 +46,8 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
         />
         <Area
           type="monotone"
-          dataKey="temperatureC"
-          name="Temp °C"
+          dataKey="temperatureF"
+          name="Temp °F"
           stroke="var(--color-temp)"
           strokeWidth={2}
           fill="url(#tempFill)"
