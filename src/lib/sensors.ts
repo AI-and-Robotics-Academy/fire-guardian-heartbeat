@@ -84,15 +84,16 @@ interface SensorSeed {
 }
 
 const SEEDS: SensorSeed[] = [
-  { id: "PI-01", name: "Ridge Crest", zone: "Angeles NF — North", lat: 34.3402, lng: -118.0455, elevationM: 1712, baseTemp: 97, baseHumidity: 14 },
-  { id: "PI-02", name: "Chantry Flat", zone: "Angeles NF — South", lat: 34.1955, lng: -118.0233, elevationM: 549, baseTemp: 91, baseHumidity: 22 },
-  { id: "PI-03", name: "Big Tujunga", zone: "Angeles NF — West", lat: 34.2925, lng: -118.1893, elevationM: 786, baseTemp: 88, baseHumidity: 27 },
-  { id: "PI-04", name: "Mount Wilson", zone: "Summit Relay", lat: 34.2259, lng: -118.0571, elevationM: 1742, baseTemp: 81, baseHumidity: 34 },
-  { id: "PI-05", name: "Devil's Canyon", zone: "Angeles NF — Core", lat: 34.2831, lng: -117.9812, elevationM: 1105, baseTemp: 100, baseHumidity: 11 },
-  { id: "PI-06", name: "Placerita Creek", zone: "Foothill Edge", lat: 34.3861, lng: -118.4548, elevationM: 432, baseTemp: 84, baseHumidity: 41 },
-  { id: "PI-07", name: "Sand Canyon", zone: "Foothill Edge", lat: 34.4113, lng: -118.3711, elevationM: 512, baseTemp: 93, baseHumidity: 19 },
-  { id: "PI-08", name: "Monrovia Peak", zone: "Angeles NF — South", lat: 34.2216, lng: -117.9585, elevationM: 1613, baseTemp: 77, baseHumidity: 48 },
+  { id: "PI-01", name: "Chelan Butte", zone: "Okanogan-Wenatchee NF — North", lat: 47.8213, lng: -120.0559, elevationM: 1093, baseTemp: 96, baseHumidity: 16 },
+  { id: "PI-02", name: "Swauk Ridge", zone: "Okanogan-Wenatchee NF — Cle Elum", lat: 47.3122, lng: -120.6483, elevationM: 1204, baseTemp: 91, baseHumidity: 23 },
+  { id: "PI-03", name: "Methow Valley", zone: "Methow Ranger District", lat: 48.4739, lng: -120.1256, elevationM: 631, baseTemp: 94, baseHumidity: 18 },
+  { id: "PI-04", name: "Mission Peak Relay", zone: "Summit Relay — Wenatchee", lat: 47.3625, lng: -120.4001, elevationM: 2020, baseTemp: 79, baseHumidity: 35 },
+  { id: "PI-05", name: "Yakima Rim", zone: "Yakima Training Corridor", lat: 46.7231, lng: -120.3853, elevationM: 902, baseTemp: 100, baseHumidity: 11 },
+  { id: "PI-06", name: "Colville Ridge", zone: "Colville NF — Northeast", lat: 48.5461, lng: -117.9021, elevationM: 1150, baseTemp: 88, baseHumidity: 27 },
+  { id: "PI-07", name: "Spokane Scablands", zone: "Eastern Shrub-Steppe", lat: 47.4791, lng: -117.9412, elevationM: 715, baseTemp: 93, baseHumidity: 19 },
+  { id: "PI-08", name: "Gifford Pinchot South", zone: "Gifford Pinchot NF — Cowlitz", lat: 46.1439, lng: -121.7412, elevationM: 1180, baseTemp: 77, baseHumidity: 46 },
 ];
+
 
 const jitter = (spread: number) => (Math.random() - 0.5) * spread;
 

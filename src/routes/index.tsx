@@ -17,17 +17,17 @@ const TerrainMap = lazy(() => import("@/components/TerrainMap"));
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "WildGuard — Wildfire Sensor Command Console" },
+      { title: "WildGuard — Washington Wildfire Sensor Console" },
       {
         name: "description",
         content:
-          "Live Raspberry Pi telemetry for wildfire crews: temperature, humidity, composite fire-risk scoring and terrain mapping across every monitored zone.",
+          "Live Raspberry Pi telemetry for Washington State wildfire crews: temperature, humidity, composite fire-risk scoring and terrain mapping across Cascade and eastern Washington zones.",
       },
-      { property: "og:title", content: "WildGuard — Wildfire Sensor Command Console" },
+      { property: "og:title", content: "WildGuard — Washington Wildfire Sensor Console" },
       {
         property: "og:description",
         content:
-          "Monitor temperature, humidity and composite fire risk from field Raspberry Pi sensors on a live topography map.",
+          "Monitor temperature, humidity and composite fire risk from Raspberry Pi sensors across Washington State on a live topography map.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -79,9 +79,11 @@ function Dashboard() {
             WildGuard
           </h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Wildfire prevention and early detection for field crews — Raspberry Pi temperature and
-            humidity nodes, composite risk scoring, and live topography.
+            Wildfire prevention and early detection for Washington State crews — Raspberry Pi
+            temperature and humidity nodes across the Cascades and eastern shrub-steppe, composite
+            risk scoring, and live topography.
           </p>
+
         </div>
         <div className="panel px-4 py-3 text-right">
           <p className="label-eyebrow">Last packet</p>

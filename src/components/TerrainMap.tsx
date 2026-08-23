@@ -97,8 +97,8 @@ export default function TerrainMap({ sensors, selectedId, onSelect }: Props) {
         if (cancelled || !containerRef.current || mapRef.current) return;
         libsRef.current = libs;
         mapRef.current = new libs.maps.Map(containerRef.current, {
-          center: { lat: 34.28, lng: -118.13 },
-          zoom: 10,
+          center: { lat: 47.4, lng: -120.2 },
+          zoom: 7,
           mapTypeId: "terrain",
           disableDefaultUI: true,
           zoomControl: true,
