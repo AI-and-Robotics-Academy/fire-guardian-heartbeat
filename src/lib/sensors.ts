@@ -72,6 +72,28 @@ export const RISK_HEX: Record<RiskLevel, string> = {
   extreme: "#e3452f",
 };
 
+/** Temperature bands used by the color-coded heat layer (°F). */
+export interface HeatBand {
+  min: number;
+  label: string;
+  hex: string;
+}
+
+export const HEAT_BANDS: HeatBand[] = [
+  { min: 105, label: "105°F+", hex: "#b21807" },
+  { min: 98, label: "98–105°F", hex: "#e3452f" },
+  { min: 91, label: "91–98°F", hex: "#f2842b" },
+  { min: 84, label: "84–91°F", hex: "#f2c14b" },
+  { min: 75, label: "75–84°F", hex: "#a8c94a" },
+  { min: -100, label: "Below 75°F", hex: "#3ec7a1" },
+];
+
+export function heatBand(temperatureF: number): HeatBand {
+  return HEAT_BANDS.find((b) => temperatureF >= b.min) ?? HEAT_BANDS[HEAT_BANDS.length - 1]!;
+}
+
+export const heatColor = (temperatureF: number) => heatBand(temperatureF).hex;
+
 interface SensorSeed {
   id: string;
   name: string;
