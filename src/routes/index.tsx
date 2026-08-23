@@ -43,6 +43,7 @@ function Dashboard() {
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
+  const [layer, setLayer] = useState<"heat" | "risk">("heat");
 
   useEffect(() => {
     const tick = () => {
