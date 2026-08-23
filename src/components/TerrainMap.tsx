@@ -1,6 +1,6 @@
 /// <reference types="google.maps" />
 import { useEffect, useRef, useState } from "react";
-import { RISK_HEX, assessRisk, type SensorReading } from "@/lib/sensors";
+import { RISK_HEX, assessRisk, heatColor, type SensorReading } from "@/lib/sensors";
 
 declare global {
   interface Window {
