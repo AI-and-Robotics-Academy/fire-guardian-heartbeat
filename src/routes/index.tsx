@@ -127,17 +127,56 @@ function Dashboard() {
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="panel overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
             <h2 className="flex items-center gap-2 text-xl">
               <Satellite className="size-4 text-accent" aria-hidden />
               Live topography
             </h2>
-            <div className="flex flex-wrap gap-2">
-              <RiskBadge level="low" label="Low" />
-              <RiskBadge level="moderate" label="Moderate" />
-              <RiskBadge level="high" label="High" />
-              <RiskBadge level="extreme" label="Extreme" />
+            <div className="flex items-center gap-1 rounded-full border border-border bg-surface-raised p-1">
+              {(["heat", "risk"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setLayer(mode)}
+                  aria-pressed={layer === mode}
+                  className={`rounded-full px-3 py-1 font-display text-xs tracking-[0.14em] uppercase transition-colors ${
+                    layer === mode
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {mode === "heat" ? "Heat" : "Risk"}
+                </button>
+              ))}
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2">
+            {layer === "heat" ? (
+              <>
+                <span className="label-eyebrow mr-1">Surface temperature</span>
+                {HEAT_BANDS.slice().reverse().map((band) => (
+                  <span
+                    key={band.label}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 font-mono text-[0.7rem] tabular-nums"
+                  >
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ backgroundColor: band.hex }}
+                      aria-hidden
+                    />
+                    {band.label}
+                  </span>
+                ))}
+              </>
+            ) : (
+              <>
+                <span className="label-eyebrow mr-1">Composite risk</span>
+                <RiskBadge level="low" label="Low" />
+                <RiskBadge level="moderate" label="Moderate" />
+                <RiskBadge level="high" label="High" />
+                <RiskBadge level="extreme" label="Extreme" />
+              </>
+            )}
           </div>
           <div className="h-[460px] w-full bg-surface-raised">
             <ClientOnly fallback={<MapSkeleton />}>
@@ -146,6 +185,7 @@ function Dashboard() {
                   sensors={sensors}
                   selectedId={selectedId}
                   onSelect={setSelectedId}
+                  layer={layer}
                 />
               </Suspense>
             </ClientOnly>
