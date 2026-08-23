@@ -124,7 +124,12 @@ export default function TerrainMap({ sensors, selectedId, onSelect, layer = "hea
 
     for (const sensor of sensors) {
       const risk = assessRisk(sensor);
-      const color = sensor.online ? RISK_HEX[risk.level] : "#7a736c";
+      const heat = layer === "heat";
+      const color = !sensor.online
+        ? "#7a736c"
+        : heat
+          ? heatColor(sensor.temperatureF)
+          : RISK_HEX[risk.level];
       const active = sensor.id === selectedId;
       const position = { lat: sensor.lat, lng: sensor.lng };
 
@@ -135,10 +140,12 @@ export default function TerrainMap({ sensors, selectedId, onSelect, layer = "hea
         markersRef.current.set(sensor.id, marker);
       }
       marker.setIcon(markerIcon(libs, color, active));
-      marker.setZIndex(active ? 999 : Math.round(risk.score));
+      marker.setZIndex(active ? 999 : Math.round(heat ? sensor.temperatureF : risk.score));
 
       let circle = circlesRef.current.get(sensor.id);
-      const radius = 1200 + risk.score * 55;
+      const radius = heat
+        ? 2600 + Math.max(0, sensor.temperatureF - 70) * 460
+        : 1200 + risk.score * 55;
       if (!circle) {
         circle = new libs.maps.Circle({
           map,
@@ -151,9 +158,14 @@ export default function TerrainMap({ sensors, selectedId, onSelect, layer = "hea
         });
         circlesRef.current.set(sensor.id, circle);
       }
-      circle.setOptions({ radius, strokeColor: color, fillColor: color });
+      circle.setOptions({
+        radius,
+        strokeColor: color,
+        fillColor: color,
+        fillOpacity: heat ? (sensor.online ? 0.3 : 0.1) : 0.16,
+      });
     }
-  }, [sensors, selectedId, ready]);
+  }, [sensors, selectedId, ready, layer]);
 
   useEffect(() => {
     const map = mapRef.current;
