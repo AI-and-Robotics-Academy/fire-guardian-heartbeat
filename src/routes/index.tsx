@@ -17,17 +17,17 @@ const TerrainMap = lazy(() => import("@/components/TerrainMap"));
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "WildGuard — Wildfire Sensor Command Console" },
+      { title: "WildGuard — Washington Wildfire Sensor Console" },
       {
         name: "description",
         content:
-          "Live Raspberry Pi telemetry for wildfire crews: temperature, humidity, composite fire-risk scoring and terrain mapping across every monitored zone.",
+          "Live Raspberry Pi telemetry for Washington State wildfire crews: temperature, humidity, composite fire-risk scoring and terrain mapping across Cascade and eastern Washington zones.",
       },
-      { property: "og:title", content: "WildGuard — Wildfire Sensor Command Console" },
+      { property: "og:title", content: "WildGuard — Washington Wildfire Sensor Console" },
       {
         property: "og:description",
         content:
-          "Monitor temperature, humidity and composite fire risk from field Raspberry Pi sensors on a live topography map.",
+          "Monitor temperature, humidity and composite fire risk from Raspberry Pi sensors across Washington State on a live topography map.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
