@@ -78,9 +78,11 @@ interface Props {
   sensors: SensorReading[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** "heat" colors nodes by raw temperature; "risk" by composite score. */
+  layer?: "risk" | "heat";
 }
 
-export default function TerrainMap({ sensors, selectedId, onSelect }: Props) {
+export default function TerrainMap({ sensors, selectedId, onSelect, layer = "heat" }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const libsRef = useRef<MapsLibs | null>(null);
