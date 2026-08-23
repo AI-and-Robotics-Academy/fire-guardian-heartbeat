@@ -5,6 +5,7 @@ import { RiskBadge } from "@/components/RiskBadge";
 import { SensorRow } from "@/components/SensorRow";
 import { TrendChart } from "@/components/TrendChart";
 import {
+  HEAT_BANDS,
   assessRisk,
   generateReadings,
   generateTrend,
