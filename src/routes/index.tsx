@@ -79,9 +79,11 @@ function Dashboard() {
             WildGuard
           </h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Wildfire prevention and early detection for field crews — Raspberry Pi temperature and
-            humidity nodes, composite risk scoring, and live topography.
+            Wildfire prevention and early detection for Washington State crews — Raspberry Pi
+            temperature and humidity nodes across the Cascades and eastern shrub-steppe, composite
+            risk scoring, and live topography.
           </p>
+
         </div>
         <div className="panel px-4 py-3 text-right">
           <p className="label-eyebrow">Last packet</p>
