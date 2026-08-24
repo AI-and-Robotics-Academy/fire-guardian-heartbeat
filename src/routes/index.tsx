@@ -1,6 +1,11 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { Activity, Droplets, Flame, Radio, Satellite, Thermometer } from "lucide-react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Activity, Droplets, Flame, Navigation, Radio, Satellite, Thermometer } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  getResponseRoute,
+  type ResponseRoute,
+} from "@/lib/response-route.functions";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SensorRow } from "@/components/SensorRow";
 import { TrendChart } from "@/components/TrendChart";
@@ -8,7 +13,10 @@ import {
   HEAT_BANDS,
   assessRisk,
   generateReadings,
+  distanceKm,
   generateTrend,
+  nearestStation,
+  type FireStation,
   type SensorReading,
   type TrendPoint,
 } from "@/lib/sensors";
@@ -44,6 +52,10 @@ function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [layer, setLayer] = useState<"heat" | "risk">("heat");
+  const [showStations, setShowStations] = useState(true);
+  const [route, setRoute] = useState<ResponseRoute | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const fetchRoute = useServerFn(getResponseRoute);
 
   useEffect(() => {
     const tick = () => {
@@ -67,6 +79,52 @@ function Dashboard() {
   }, [online]);
 
   const selected = sensors.find((s) => s.id === selectedId) ?? null;
+  const station: FireStation | null = selected ? nearestStation(selected) : null;
+
+  // One routing request per selected node; cached by node id for the session.
+  const routeCache = useRef<Map<string, ResponseRoute>>(new Map());
+  useEffect(() => {
+    if (!selectedId || !selected || !station) {
+      setRoute(null);
+      return;
+    }
+    const cached = routeCache.current.get(selectedId);
+    if (cached) {
+      setRoute(cached);
+      return;
+    }
+    let cancelled = false;
+    setRouteLoading(true);
+    fetchRoute({
+      data: {
+        originLat: station.lat,
+        originLng: station.lng,
+        destLat: selected.lat,
+        destLng: selected.lng,
+      },
+    })
+      .then((result) => {
+        routeCache.current.set(selectedId, result);
+        if (!cancelled) setRoute(result);
+      })
+      .catch(() => {
+        if (!cancelled)
+          setRoute({
+            polyline: null,
+            distanceMeters: null,
+            durationSeconds: null,
+            error: "Routing unavailable",
+          });
+      })
+      .finally(() => {
+        if (!cancelled) setRouteLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Only re-run when the selected node changes, not on every telemetry tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
   const ranked = [...sensors].sort((a, b) => assessRisk(b).score - assessRisk(a).score);
 
   return (
@@ -151,6 +209,19 @@ function Dashboard() {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => setShowStations((v) => !v)}
+              aria-pressed={showStations}
+              className={`inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase transition-colors ${
+                showStations
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Navigation className="size-3" aria-hidden />
+              Stations
+            </button>
           </div>
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2">
             {layer === "heat" ? (
@@ -188,6 +259,9 @@ function Dashboard() {
                   selectedId={selectedId}
                   onSelect={setSelectedId}
                   layer={layer}
+                  routePolyline={route?.polyline ?? null}
+                  dispatchStation={station}
+                  showStations={showStations}
                 />
               </Suspense>
             </ClientOnly>
@@ -224,7 +298,15 @@ function Dashboard() {
         <div className="panel p-5">
           <h2 className="text-xl">{selected ? `${selected.id} · ${selected.name}` : "Node detail"}</h2>
           {selected ? (
-            <SensorDetail sensor={selected} />
+            <>
+              <SensorDetail sensor={selected} />
+              <DispatchPanel
+                sensor={selected}
+                station={station}
+                route={route}
+                loading={routeLoading}
+              />
+            </>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
               Select a node from the map or list to inspect its readings and risk drivers.
@@ -274,6 +356,50 @@ function SensorDetail({ sensor }: { sensor: SensorReading }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DispatchPanel({
+  sensor,
+  station,
+  route,
+  loading,
+}: {
+  sensor: SensorReading;
+  station: FireStation | null;
+  route: ResponseRoute | null;
+  loading: boolean;
+}) {
+  if (!station) return null;
+  const straightKm = distanceKm(sensor, station);
+  const miles = route?.distanceMeters
+    ? route.distanceMeters / 1609.34
+    : straightKm * 0.621371;
+  const eta = route?.durationSeconds ? Math.round(route.durationSeconds / 60) : null;
+
+  return (
+    <div className="mt-5 border-t border-border pt-4">
+      <p className="label-eyebrow flex items-center gap-2 text-accent">
+        <Navigation className="size-3.5" aria-hidden />
+        Nearest response unit
+      </p>
+      <p className="mt-2 text-sm">{station.name}</p>
+      <p className="text-xs text-muted-foreground">{station.city}, WA</p>
+      <dl className="mt-3 grid grid-cols-2 gap-3 font-mono text-sm tabular-nums">
+        <Detail
+          label={route?.distanceMeters ? "Road distance" : "Direct distance"}
+          value={`${miles.toFixed(1)} mi`}
+        />
+        <Detail label="Drive ETA" value={eta ? `${eta} min` : loading ? "…" : "—"} />
+      </dl>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {loading
+          ? "Calculating response route…"
+          : route?.polyline
+            ? "Blue line shows the fastest road route to this node."
+            : `Straight-line bearing shown${route?.error ? ` — ${route.error}` : ""}.`}
+      </p>
     </div>
   );
 }

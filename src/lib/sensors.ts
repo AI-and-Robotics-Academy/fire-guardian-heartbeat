@@ -167,3 +167,46 @@ export function generateTrend(): TrendPoint[] {
     return { time: `${String(hour).padStart(2, "0")}:00`, temperatureF, humidityPct, risk };
   });
 }
+
+export interface FireStation {
+  id: string;
+  name: string;
+  city: string;
+  lat: number;
+  lng: number;
+}
+
+/** Washington State wildfire response bases / district stations. */
+export const FIRE_STATIONS: FireStation[] = [
+  { id: "ST-WEN", name: "Wenatchee Valley Fire Dept.", city: "Wenatchee", lat: 47.4235, lng: -120.3103 },
+  { id: "ST-CHE", name: "Chelan Co. Fire District 7", city: "Chelan", lat: 47.8409, lng: -120.0166 },
+  { id: "ST-TWI", name: "Okanogan Co. District 6", city: "Twisp", lat: 48.3665, lng: -120.1198 },
+  { id: "ST-CLE", name: "Kittitas Valley Fire & Rescue", city: "Cle Elum", lat: 47.1954, lng: -120.9392 },
+  { id: "ST-YAK", name: "Yakima Fire Dept. Station 5", city: "Yakima", lat: 46.6021, lng: -120.5059 },
+  { id: "ST-COL", name: "Colville Fire Dept.", city: "Colville", lat: 48.5457, lng: -117.9052 },
+  { id: "ST-SPO", name: "Spokane Valley Fire District 8", city: "Spokane Valley", lat: 47.6588, lng: -117.2394 },
+  { id: "ST-RAN", name: "Cowlitz 2 Fire & Rescue", city: "Randle", lat: 46.5321, lng: -122.0053 },
+];
+
+const R_EARTH_KM = 6371;
+const rad = (d: number) => (d * Math.PI) / 180;
+
+/** Great-circle distance in kilometres. */
+export function distanceKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R_EARTH_KM * Math.asin(Math.sqrt(h));
+}
+
+/** Closest staffed station to a sensor node. */
+export function nearestStation(point: { lat: number; lng: number }): FireStation {
+  return FIRE_STATIONS.reduce((best, s) =>
+    distanceKm(point, s) < distanceKm(point, best) ? s : best,
+  );
+}
