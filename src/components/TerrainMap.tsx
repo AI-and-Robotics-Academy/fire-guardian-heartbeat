@@ -257,7 +257,7 @@ export default function TerrainMap({
       strokeOpacity: routePolyline ? 0.95 : 0,
       strokeWeight: 4,
       icons: routePolyline
-        ? undefined
+        ? null
         : [
             {
               icon: { path: "M 0,-1 0,1", strokeOpacity: 0.9, scale: 3 },
