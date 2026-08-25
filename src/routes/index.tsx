@@ -149,6 +149,23 @@ function Dashboard() {
             temperature and humidity nodes across the Cascades and eastern shrub-steppe, composite
             risk scoring, and live topography.
           </p>
+          <nav className="mt-4 flex gap-2">
+            <span className="rounded-full bg-primary px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-primary-foreground">
+              Console
+            </span>
+            <Link
+              to="/alerts"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <BellRing className="size-3" aria-hidden />
+              Alerts
+              {activeAlerts > 0 && (
+                <span className="rounded-full bg-risk-extreme px-1.5 font-mono text-[0.65rem] text-background">
+                  {activeAlerts}
+                </span>
+              )}
+            </Link>
+          </nav>
 
         </div>
         <div className="panel px-4 py-3 text-right">
