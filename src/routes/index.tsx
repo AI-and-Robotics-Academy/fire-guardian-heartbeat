@@ -52,6 +52,7 @@ function Dashboard() {
   // Initialize empty to avoid SSR hydration mismatch from random telemetry.
   const [sensors, setSensors] = useState<SensorReading[]>([]);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [ror, setRor] = useState<RorPoint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [layer, setLayer] = useState<"heat" | "risk">("heat");
@@ -66,6 +67,7 @@ function Dashboard() {
       setUpdatedAt(new Date().toLocaleTimeString());
     };
     setTrend(generateTrend());
+    setRor(generateRateOfRise());
     tick();
     const id = window.setInterval(tick, 5000);
     return () => window.clearInterval(id);
@@ -76,9 +78,10 @@ function Dashboard() {
     if (online.length === 0) return null;
     const avgTemp = online.reduce((a, s) => a + s.temperatureF, 0) / online.length;
     const avgHum = online.reduce((a, s) => a + s.humidityPct, 0) / online.length;
+    const avgRor = online.reduce((a, s) => a + s.tempTrendFPerHr, 0) / online.length;
     const scores = online.map((s) => assessRisk(s));
     const worst = scores.reduce((a, b) => (b.score > a.score ? b : a));
-    return { avgTemp, avgHum, worst, peak: worst.score };
+    return { avgTemp, avgHum, avgRor, worst, peak: worst.score };
   }, [online]);
 
   const selected = sensors.find((s) => s.id === selectedId) ?? null;
