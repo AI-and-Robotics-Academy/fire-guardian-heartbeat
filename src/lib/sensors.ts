@@ -210,3 +210,179 @@ export function nearestStation(point: { lat: number; lng: number }): FireStation
     distanceKm(point, s) < distanceKm(point, best) ? s : best,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Rate of rise (ROR) — how fast temperature is climbing, the earliest signal
+// of an ignition event. Firefighting convention: sustained fast rise matters
+// more than absolute heat.
+// ---------------------------------------------------------------------------
+
+export interface RorPoint {
+  time: string;
+  /** Network average rate of rise, °F per hour. */
+  rorFPerHr: number;
+  /** Fastest-rising single node at that hour, °F per hour. */
+  peakFPerHr: number;
+}
+
+/** Rate-of-rise thresholds in °F/hr used for banding and alerting. */
+export const ROR_THRESHOLDS = {
+  watch: 3,
+  warning: 6,
+  critical: 9,
+} as const;
+
+export function rorLevel(rorFPerHr: number): RiskLevel {
+  if (rorFPerHr >= ROR_THRESHOLDS.critical) return "extreme";
+  if (rorFPerHr >= ROR_THRESHOLDS.warning) return "high";
+  if (rorFPerHr >= ROR_THRESHOLDS.watch) return "moderate";
+  return "low";
+}
+
+/** 12-hour rolling rate-of-rise history for the mesh. */
+export function generateRateOfRise(): RorPoint[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const hour = (new Date().getHours() - 11 + i + 24) % 24;
+    const diurnal = Math.sin(((hour - 5) / 24) * Math.PI * 2);
+    const ror = Math.round((2.4 + diurnal * 3.6 + jitter(1.6)) * 10) / 10;
+    const peak = Math.round((ror + 2.2 + Math.abs(jitter(3.4))) * 10) / 10;
+    return {
+      time: `${String(hour).padStart(2, "0")}:00`,
+      rorFPerHr: Math.max(0, ror),
+      peakFPerHr: Math.max(0, peak),
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Alert system — alerts fire ONLY when a sensor breaches a defined parameter.
+// ---------------------------------------------------------------------------
+
+export type AlertSeverity = "watch" | "warning" | "critical";
+
+export interface AlertThresholds {
+  temperatureF: number;
+  humidityPct: number;
+  rorFPerHr: number;
+  riskScore: number;
+}
+
+/** Default dispatch parameters — nothing alerts until one of these is met. */
+export const DEFAULT_THRESHOLDS: AlertThresholds = {
+  temperatureF: 95,
+  humidityPct: 20,
+  rorFPerHr: ROR_THRESHOLDS.warning,
+  riskScore: 70,
+};
+
+export interface SensorAlert {
+  id: string;
+  sensorId: string;
+  sensorName: string;
+  zone: string;
+  severity: AlertSeverity;
+  parameter: string;
+  message: string;
+  reading: string;
+  threshold: string;
+  riskScore: number;
+}
+
+/** Returns one alert per breached parameter; empty when all nodes are nominal. */
+export function evaluateAlerts(
+  sensors: SensorReading[],
+  thresholds: AlertThresholds = DEFAULT_THRESHOLDS,
+): SensorAlert[] {
+  const alerts: SensorAlert[] = [];
+
+  for (const s of sensors) {
+    const risk = assessRisk(s);
+
+    if (!s.online) {
+      alerts.push({
+        id: `${s.id}-offline`,
+        sensorId: s.id,
+        sensorName: s.name,
+        zone: s.zone,
+        severity: "watch",
+        parameter: "Link loss",
+        message: "Node stopped reporting — coverage gap in this zone.",
+        reading: `${Math.round(s.lastSeenSecondsAgo / 60)} min since last packet`,
+        threshold: "Expected < 2 min",
+        riskScore: risk.score,
+      });
+      continue;
+    }
+
+    if (s.temperatureF >= thresholds.temperatureF) {
+      alerts.push({
+        id: `${s.id}-temp`,
+        sensorId: s.id,
+        sensorName: s.name,
+        zone: s.zone,
+        severity: s.temperatureF >= thresholds.temperatureF + 8 ? "critical" : "warning",
+        parameter: "Temperature",
+        message: "Surface temperature above dispatch threshold.",
+        reading: `${s.temperatureF.toFixed(1)} °F`,
+        threshold: `≥ ${thresholds.temperatureF} °F`,
+        riskScore: risk.score,
+      });
+    }
+
+    if (s.humidityPct <= thresholds.humidityPct) {
+      alerts.push({
+        id: `${s.id}-hum`,
+        sensorId: s.id,
+        sensorName: s.name,
+        zone: s.zone,
+        severity: s.humidityPct <= thresholds.humidityPct - 8 ? "critical" : "warning",
+        parameter: "Humidity",
+        message: "Relative humidity critically dry — fuels readily ignitable.",
+        reading: `${s.humidityPct} %`,
+        threshold: `≤ ${thresholds.humidityPct} %`,
+        riskScore: risk.score,
+      });
+    }
+
+    if (s.tempTrendFPerHr >= thresholds.rorFPerHr) {
+      alerts.push({
+        id: `${s.id}-ror`,
+        sensorId: s.id,
+        sensorName: s.name,
+        zone: s.zone,
+        severity: s.tempTrendFPerHr >= ROR_THRESHOLDS.critical ? "critical" : "warning",
+        parameter: "Rate of rise",
+        message: "Temperature climbing fast — possible active ignition.",
+        reading: `${s.tempTrendFPerHr.toFixed(1)} °F/h`,
+        threshold: `≥ ${thresholds.rorFPerHr} °F/h`,
+        riskScore: risk.score,
+      });
+    }
+
+    if (risk.score >= thresholds.riskScore) {
+      alerts.push({
+        id: `${s.id}-risk`,
+        sensorId: s.id,
+        sensorName: s.name,
+        zone: s.zone,
+        severity: risk.score >= 85 ? "critical" : "warning",
+        parameter: "Composite risk",
+        message: `Composite fire risk at ${risk.label.toLowerCase()} level.`,
+        reading: String(risk.score),
+        threshold: `≥ ${thresholds.riskScore}`,
+        riskScore: risk.score,
+      });
+    }
+  }
+
+  const order: Record<AlertSeverity, number> = { critical: 0, warning: 1, watch: 2 };
+  return alerts.sort(
+    (a, b) => order[a.severity] - order[b.severity] || b.riskScore - a.riskScore,
+  );
+}
+
+export const SEVERITY_STYLE: Record<AlertSeverity, { label: string; token: string }> = {
+  critical: { label: "Critical", token: "risk-extreme" },
+  warning: { label: "Warning", token: "risk-high" },
+  watch: { label: "Watch", token: "risk-moderate" },
+};
