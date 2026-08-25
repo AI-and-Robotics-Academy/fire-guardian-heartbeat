@@ -286,6 +286,25 @@ function Dashboard() {
         </div>
       </section>
 
+      <section className="mt-6 panel p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl">Rate of rise — fire risk momentum</h2>
+            <p className="text-xs text-muted-foreground">
+              °F gained per hour across the mesh. Sustained fast rise is the earliest ignition
+              signal; crossing the dashed lines escalates a node to warning or critical.
+            </p>
+          </div>
+          <p className="font-mono text-sm tabular-nums">
+            <span className="label-eyebrow mr-2">Now</span>
+            {network ? `${network.avgRor.toFixed(1)} °F/h avg` : "—"}
+          </p>
+        </div>
+        <div className="mt-3">
+          <RateOfRiseChart data={ror} />
+        </div>
+      </section>
+
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="panel p-5">
           <h2 className="text-xl">24-hour network trend</h2>
@@ -294,6 +313,7 @@ function Dashboard() {
           </p>
           <TrendChart data={trend} />
         </div>
+
 
         <div className="panel p-5">
           <h2 className="text-xl">{selected ? `${selected.id} · ${selected.name}` : "Node detail"}</h2>
