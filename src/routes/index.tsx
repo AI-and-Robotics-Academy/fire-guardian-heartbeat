@@ -1,6 +1,6 @@
-import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly, Link } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Droplets, Flame, Navigation, Radio, Satellite, Thermometer } from "lucide-react";
+import { Activity, BellRing, Droplets, Flame, Navigation, Radio, Satellite, Thermometer } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getResponseRoute,
@@ -15,6 +15,7 @@ import {
   assessRisk,
   generateReadings,
   distanceKm,
+  evaluateAlerts,
   generateRateOfRise,
   generateTrend,
   nearestStation,
@@ -83,6 +84,8 @@ function Dashboard() {
     const worst = scores.reduce((a, b) => (b.score > a.score ? b : a));
     return { avgTemp, avgHum, avgRor, worst, peak: worst.score };
   }, [online]);
+
+  const activeAlerts = useMemo(() => evaluateAlerts(sensors).length, [sensors]);
 
   const selected = sensors.find((s) => s.id === selectedId) ?? null;
   const station: FireStation | null = selected ? nearestStation(selected) : null;
