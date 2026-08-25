@@ -1,6 +1,6 @@
-import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly, Link } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Droplets, Flame, Navigation, Radio, Satellite, Thermometer } from "lucide-react";
+import { Activity, BellRing, Droplets, Flame, Navigation, Radio, Satellite, Thermometer } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getResponseRoute,
@@ -9,14 +9,18 @@ import {
 import { RiskBadge } from "@/components/RiskBadge";
 import { SensorRow } from "@/components/SensorRow";
 import { TrendChart } from "@/components/TrendChart";
+import { RateOfRiseChart } from "@/components/RateOfRiseChart";
 import {
   HEAT_BANDS,
   assessRisk,
   generateReadings,
   distanceKm,
+  evaluateAlerts,
+  generateRateOfRise,
   generateTrend,
   nearestStation,
   type FireStation,
+  type RorPoint,
   type SensorReading,
   type TrendPoint,
 } from "@/lib/sensors";
@@ -49,6 +53,7 @@ function Dashboard() {
   // Initialize empty to avoid SSR hydration mismatch from random telemetry.
   const [sensors, setSensors] = useState<SensorReading[]>([]);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [ror, setRor] = useState<RorPoint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
   const [layer, setLayer] = useState<"heat" | "risk">("heat");
@@ -63,6 +68,7 @@ function Dashboard() {
       setUpdatedAt(new Date().toLocaleTimeString());
     };
     setTrend(generateTrend());
+    setRor(generateRateOfRise());
     tick();
     const id = window.setInterval(tick, 5000);
     return () => window.clearInterval(id);
@@ -73,10 +79,13 @@ function Dashboard() {
     if (online.length === 0) return null;
     const avgTemp = online.reduce((a, s) => a + s.temperatureF, 0) / online.length;
     const avgHum = online.reduce((a, s) => a + s.humidityPct, 0) / online.length;
+    const avgRor = online.reduce((a, s) => a + s.tempTrendFPerHr, 0) / online.length;
     const scores = online.map((s) => assessRisk(s));
     const worst = scores.reduce((a, b) => (b.score > a.score ? b : a));
-    return { avgTemp, avgHum, worst, peak: worst.score };
+    return { avgTemp, avgHum, avgRor, worst, peak: worst.score };
   }, [online]);
+
+  const activeAlerts = useMemo(() => evaluateAlerts(sensors).length, [sensors]);
 
   const selected = sensors.find((s) => s.id === selectedId) ?? null;
   const station: FireStation | null = selected ? nearestStation(selected) : null;
@@ -143,6 +152,23 @@ function Dashboard() {
             temperature and humidity nodes across the Cascades and eastern shrub-steppe, composite
             risk scoring, and live topography.
           </p>
+          <nav className="mt-4 flex gap-2">
+            <span className="rounded-full bg-primary px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-primary-foreground">
+              Console
+            </span>
+            <Link
+              to="/alerts"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <BellRing className="size-3" aria-hidden />
+              Alerts
+              {activeAlerts > 0 && (
+                <span className="rounded-full bg-risk-extreme px-1.5 font-mono text-[0.65rem] text-background">
+                  {activeAlerts}
+                </span>
+              )}
+            </Link>
+          </nav>
 
         </div>
         <div className="panel px-4 py-3 text-right">
@@ -286,6 +312,25 @@ function Dashboard() {
         </div>
       </section>
 
+      <section className="mt-6 panel p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl">Rate of rise — fire risk momentum</h2>
+            <p className="text-xs text-muted-foreground">
+              °F gained per hour across the mesh. Sustained fast rise is the earliest ignition
+              signal; crossing the dashed lines escalates a node to warning or critical.
+            </p>
+          </div>
+          <p className="font-mono text-sm tabular-nums">
+            <span className="label-eyebrow mr-2">Now</span>
+            {network ? `${network.avgRor.toFixed(1)} °F/h avg` : "—"}
+          </p>
+        </div>
+        <div className="mt-3">
+          <RateOfRiseChart data={ror} />
+        </div>
+      </section>
+
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="panel p-5">
           <h2 className="text-xl">24-hour network trend</h2>
@@ -294,6 +339,7 @@ function Dashboard() {
           </p>
           <TrendChart data={trend} />
         </div>
+
 
         <div className="panel p-5">
           <h2 className="text-xl">{selected ? `${selected.id} · ${selected.name}` : "Node detail"}</h2>
