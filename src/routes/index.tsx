@@ -9,14 +9,17 @@ import {
 import { RiskBadge } from "@/components/RiskBadge";
 import { SensorRow } from "@/components/SensorRow";
 import { TrendChart } from "@/components/TrendChart";
+import { RateOfRiseChart } from "@/components/RateOfRiseChart";
 import {
   HEAT_BANDS,
   assessRisk,
   generateReadings,
   distanceKm,
+  generateRateOfRise,
   generateTrend,
   nearestStation,
   type FireStation,
+  type RorPoint,
   type SensorReading,
   type TrendPoint,
 } from "@/lib/sensors";
