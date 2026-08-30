@@ -280,7 +280,7 @@ function Dashboard() {
                       style={{ backgroundColor: band.hex }}
                       aria-hidden
                     />
-                    {band.label}
+                    {bandLabel(band, system)}
                   </span>
                 ))}
               </>
@@ -334,13 +334,16 @@ function Dashboard() {
           <div>
             <h2 className="text-xl">Rate of rise — fire risk momentum</h2>
             <p className="text-xs text-muted-foreground">
-              °F gained per hour across the mesh. Sustained fast rise is the earliest ignition
-              signal; crossing the dashed lines escalates a node to warning or critical.
+              {tempUnit(system)} gained per hour across the mesh. Sustained fast rise is the
+              earliest ignition signal; crossing the dashed lines escalates a node to warning or
+              critical.
             </p>
           </div>
           <p className="font-mono text-sm tabular-nums">
             <span className="label-eyebrow mr-2">Now</span>
-            {network ? `${network.avgRor.toFixed(1)} °F/h avg` : "—"}
+            {network
+              ? `${rateValue(network.avgRor, system).toFixed(1)} ${rateUnit(system)} avg`
+              : "—"}
           </p>
         </div>
         <div className="mt-3">
