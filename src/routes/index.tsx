@@ -389,7 +389,18 @@ function Dashboard() {
   );
 }
 
+/** Heat legend label rendered in the active measurement system. */
+function bandLabel(band: (typeof HEAT_BANDS)[number], system: UnitSystem) {
+  const i = HEAT_BANDS.indexOf(band);
+  const unit = tempUnit(system);
+  const v = (f: number) => Math.round(tempValue(f, system));
+  if (i === 0) return `${v(band.min)}${unit}+`;
+  if (i === HEAT_BANDS.length - 1) return `Below ${v(HEAT_BANDS[i - 1]!.min)}${unit}`;
+  return `${v(band.min)}–${v(HEAT_BANDS[i - 1]!.min)}${unit}`;
+}
+
 function SensorDetail({ sensor }: { sensor: SensorReading }) {
+  const { system } = useUnits();
   const risk = assessRisk(sensor);
   return (
     <div className="mt-3 space-y-4">
@@ -398,11 +409,11 @@ function SensorDetail({ sensor }: { sensor: SensorReading }) {
         <RiskBadge level={risk.level} label={risk.label} />
       </div>
       <dl className="grid grid-cols-2 gap-3 font-mono text-sm tabular-nums">
-        <Detail label="Temperature" value={`${sensor.temperatureF.toFixed(1)} °F`} />
+        <Detail label="Temperature" value={formatTemp(sensor.temperatureF, system)} />
         <Detail label="Humidity" value={`${sensor.humidityPct} %`} />
-        <Detail label="Elevation" value={`${sensor.elevationM} m`} />
+        <Detail label="Elevation" value={formatElevation(sensor.elevationM, system)} />
         <Detail label="Battery" value={`${Math.min(100, sensor.batteryPct)} %`} />
-        <Detail label="Trend" value={`${sensor.tempTrendFPerHr.toFixed(1)} °F/h`} />
+        <Detail label="Trend" value={formatRate(sensor.tempTrendFPerHr, system)} />
         <Detail label="Last seen" value={`${sensor.lastSeenSecondsAgo}s ago`} />
       </dl>
       <div className="space-y-2">
