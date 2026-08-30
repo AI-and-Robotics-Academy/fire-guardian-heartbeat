@@ -24,6 +24,19 @@ import {
   type SensorReading,
   type TrendPoint,
 } from "@/lib/sensors";
+import { UnitToggle } from "@/components/UnitToggle";
+import {
+  formatDistanceFromKm,
+  formatElevation,
+  formatRate,
+  formatTemp,
+  rateUnit,
+  rateValue,
+  tempUnit,
+  tempValue,
+  useUnits,
+  type UnitSystem,
+} from "@/lib/units";
 
 const TerrainMap = lazy(() => import("@/components/TerrainMap"));
 
