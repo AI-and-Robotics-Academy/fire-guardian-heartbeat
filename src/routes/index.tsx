@@ -74,6 +74,7 @@ function Dashboard() {
   const [route, setRoute] = useState<ResponseRoute | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const fetchRoute = useServerFn(getResponseRoute);
+  const { system } = useUnits();
 
   useEffect(() => {
     const tick = () => {
@@ -184,12 +185,15 @@ function Dashboard() {
           </nav>
 
         </div>
-        <div className="panel px-4 py-3 text-right">
-          <p className="label-eyebrow">Last packet</p>
-          <p className="font-mono text-sm tabular-nums">{updatedAt || "syncing…"}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {online.length}/{sensors.length} nodes reporting
-          </p>
+        <div className="flex flex-col items-end gap-3">
+          <UnitToggle />
+          <div className="panel px-4 py-3 text-right">
+            <p className="label-eyebrow">Last packet</p>
+            <p className="font-mono text-sm tabular-nums">{updatedAt || "syncing…"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {online.length}/{sensors.length} nodes reporting
+            </p>
+          </div>
         </div>
       </header>
 
@@ -197,7 +201,7 @@ function Dashboard() {
         <StatCard
           icon={<Thermometer className="size-4" />}
           label="Avg temperature"
-          value={network ? `${network.avgTemp.toFixed(1)}°F` : "—"}
+          value={network ? formatTemp(network.avgTemp, system) : "—"}
           accent="text-temp"
           note="Across reporting nodes"
         />
