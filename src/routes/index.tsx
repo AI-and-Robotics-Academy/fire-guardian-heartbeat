@@ -24,6 +24,19 @@ import {
   type SensorReading,
   type TrendPoint,
 } from "@/lib/sensors";
+import { UnitToggle } from "@/components/UnitToggle";
+import {
+  formatDistanceFromKm,
+  formatElevation,
+  formatRate,
+  formatTemp,
+  rateUnit,
+  rateValue,
+  tempUnit,
+  tempValue,
+  useUnits,
+  type UnitSystem,
+} from "@/lib/units";
 
 const TerrainMap = lazy(() => import("@/components/TerrainMap"));
 
@@ -61,6 +74,7 @@ function Dashboard() {
   const [route, setRoute] = useState<ResponseRoute | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const fetchRoute = useServerFn(getResponseRoute);
+  const { system } = useUnits();
 
   useEffect(() => {
     const tick = () => {
@@ -171,12 +185,15 @@ function Dashboard() {
           </nav>
 
         </div>
-        <div className="panel px-4 py-3 text-right">
-          <p className="label-eyebrow">Last packet</p>
-          <p className="font-mono text-sm tabular-nums">{updatedAt || "syncing…"}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {online.length}/{sensors.length} nodes reporting
-          </p>
+        <div className="flex flex-col items-end gap-3">
+          <UnitToggle />
+          <div className="panel px-4 py-3 text-right">
+            <p className="label-eyebrow">Last packet</p>
+            <p className="font-mono text-sm tabular-nums">{updatedAt || "syncing…"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {online.length}/{sensors.length} nodes reporting
+            </p>
+          </div>
         </div>
       </header>
 
@@ -184,7 +201,7 @@ function Dashboard() {
         <StatCard
           icon={<Thermometer className="size-4" />}
           label="Avg temperature"
-          value={network ? `${network.avgTemp.toFixed(1)}°F` : "—"}
+          value={network ? formatTemp(network.avgTemp, system) : "—"}
           accent="text-temp"
           note="Across reporting nodes"
         />
@@ -263,7 +280,7 @@ function Dashboard() {
                       style={{ backgroundColor: band.hex }}
                       aria-hidden
                     />
-                    {band.label}
+                    {bandLabel(band, system)}
                   </span>
                 ))}
               </>
@@ -317,13 +334,16 @@ function Dashboard() {
           <div>
             <h2 className="text-xl">Rate of rise — fire risk momentum</h2>
             <p className="text-xs text-muted-foreground">
-              °F gained per hour across the mesh. Sustained fast rise is the earliest ignition
-              signal; crossing the dashed lines escalates a node to warning or critical.
+              {tempUnit(system)} gained per hour across the mesh. Sustained fast rise is the
+              earliest ignition signal; crossing the dashed lines escalates a node to warning or
+              critical.
             </p>
           </div>
           <p className="font-mono text-sm tabular-nums">
             <span className="label-eyebrow mr-2">Now</span>
-            {network ? `${network.avgRor.toFixed(1)} °F/h avg` : "—"}
+            {network
+              ? `${rateValue(network.avgRor, system).toFixed(1)} ${rateUnit(system)} avg`
+              : "—"}
           </p>
         </div>
         <div className="mt-3">
@@ -369,7 +389,18 @@ function Dashboard() {
   );
 }
 
+/** Heat legend label rendered in the active measurement system. */
+function bandLabel(band: (typeof HEAT_BANDS)[number], system: UnitSystem) {
+  const i = HEAT_BANDS.indexOf(band);
+  const unit = tempUnit(system);
+  const v = (f: number) => Math.round(tempValue(f, system));
+  if (i === 0) return `${v(band.min)}${unit}+`;
+  if (i === HEAT_BANDS.length - 1) return `Below ${v(HEAT_BANDS[i - 1]!.min)}${unit}`;
+  return `${v(band.min)}–${v(HEAT_BANDS[i - 1]!.min)}${unit}`;
+}
+
 function SensorDetail({ sensor }: { sensor: SensorReading }) {
+  const { system } = useUnits();
   const risk = assessRisk(sensor);
   return (
     <div className="mt-3 space-y-4">
@@ -378,11 +409,11 @@ function SensorDetail({ sensor }: { sensor: SensorReading }) {
         <RiskBadge level={risk.level} label={risk.label} />
       </div>
       <dl className="grid grid-cols-2 gap-3 font-mono text-sm tabular-nums">
-        <Detail label="Temperature" value={`${sensor.temperatureF.toFixed(1)} °F`} />
+        <Detail label="Temperature" value={formatTemp(sensor.temperatureF, system)} />
         <Detail label="Humidity" value={`${sensor.humidityPct} %`} />
-        <Detail label="Elevation" value={`${sensor.elevationM} m`} />
+        <Detail label="Elevation" value={formatElevation(sensor.elevationM, system)} />
         <Detail label="Battery" value={`${Math.min(100, sensor.batteryPct)} %`} />
-        <Detail label="Trend" value={`${sensor.tempTrendFPerHr.toFixed(1)} °F/h`} />
+        <Detail label="Trend" value={formatRate(sensor.tempTrendFPerHr, system)} />
         <Detail label="Last seen" value={`${sensor.lastSeenSecondsAgo}s ago`} />
       </dl>
       <div className="space-y-2">
@@ -417,11 +448,10 @@ function DispatchPanel({
   route: ResponseRoute | null;
   loading: boolean;
 }) {
+  const { system } = useUnits();
   if (!station) return null;
   const straightKm = distanceKm(sensor, station);
-  const miles = route?.distanceMeters
-    ? route.distanceMeters / 1609.34
-    : straightKm * 0.621371;
+  const km = route?.distanceMeters ? route.distanceMeters / 1000 : straightKm;
   const eta = route?.durationSeconds ? Math.round(route.durationSeconds / 60) : null;
 
   return (
@@ -435,7 +465,7 @@ function DispatchPanel({
       <dl className="mt-3 grid grid-cols-2 gap-3 font-mono text-sm tabular-nums">
         <Detail
           label={route?.distanceMeters ? "Road distance" : "Direct distance"}
-          value={`${miles.toFixed(1)} mi`}
+          value={formatDistanceFromKm(km, system)}
         />
         <Detail label="Drive ETA" value={eta ? `${eta} min` : loading ? "…" : "—"} />
       </dl>

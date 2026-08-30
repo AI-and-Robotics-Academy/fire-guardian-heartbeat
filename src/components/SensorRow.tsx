@@ -1,6 +1,7 @@
 import { Droplets, Thermometer, TrendingDown, TrendingUp, WifiOff } from "lucide-react";
 import { RiskBadge } from "@/components/RiskBadge";
 import { assessRisk, type SensorReading } from "@/lib/sensors";
+import { formatRate, formatTemp, useUnits } from "@/lib/units";
 import { cn } from "@/lib/utils";
 
 export function SensorRow({
@@ -12,6 +13,7 @@ export function SensorRow({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const { system } = useUnits();
   const risk = assessRisk(sensor);
   const Trend = sensor.tempTrendFPerHr >= 0 ? TrendingUp : TrendingDown;
 
@@ -44,7 +46,7 @@ export function SensorRow({
       <div className="mt-3 grid grid-cols-3 gap-2 font-mono text-sm tabular-nums">
         <span className="inline-flex items-center gap-1.5 text-temp">
           <Thermometer className="size-3.5" />
-          {sensor.temperatureF.toFixed(1)}°F
+          {formatTemp(sensor.temperatureF, system)}
         </span>
         <span className="inline-flex items-center gap-1.5 text-humidity">
           <Droplets className="size-3.5" />
@@ -52,8 +54,7 @@ export function SensorRow({
         </span>
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
           <Trend className="size-3.5" />
-          {sensor.tempTrendFPerHr > 0 ? "+" : ""}
-          {sensor.tempTrendFPerHr.toFixed(1)}/h
+          {formatRate(sensor.tempTrendFPerHr, system)}
         </span>
       </div>
     </button>
