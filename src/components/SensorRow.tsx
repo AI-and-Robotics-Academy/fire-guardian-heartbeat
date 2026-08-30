@@ -1,6 +1,7 @@
 import { Droplets, Thermometer, TrendingDown, TrendingUp, WifiOff } from "lucide-react";
 import { RiskBadge } from "@/components/RiskBadge";
 import { assessRisk, type SensorReading } from "@/lib/sensors";
+import { formatRate, formatTemp, useUnits } from "@/lib/units";
 import { cn } from "@/lib/utils";
 
 export function SensorRow({
@@ -12,6 +13,7 @@ export function SensorRow({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const { system } = useUnits();
   const risk = assessRisk(sensor);
   const Trend = sensor.tempTrendFPerHr >= 0 ? TrendingUp : TrendingDown;
 
