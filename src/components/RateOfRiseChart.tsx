@@ -11,11 +11,22 @@ import {
   YAxis,
 } from "recharts";
 import { ROR_THRESHOLDS, type RorPoint } from "@/lib/sensors";
+import { rateValue, useUnits } from "@/lib/units";
 
 export function RateOfRiseChart({ data }: { data: RorPoint[] }) {
+  const { system } = useUnits();
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  const series = data.map((p) => ({
+    ...p,
+    ror: round1(rateValue(p.rorFPerHr, system)),
+    peak: round1(rateValue(p.peakFPerHr, system)),
+  }));
+  const warning = round1(rateValue(ROR_THRESHOLDS.warning, system));
+  const critical = round1(rateValue(ROR_THRESHOLDS.critical, system));
+
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+      <AreaChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
         <defs>
           <linearGradient id="rorFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-risk-high)" stopOpacity={0.5} />
@@ -45,22 +56,22 @@ export function RateOfRiseChart({ data }: { data: RorPoint[] }) {
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <ReferenceLine
-          y={ROR_THRESHOLDS.warning}
+          y={warning}
           stroke="var(--color-risk-high)"
           strokeDasharray="5 4"
           label={{
-            value: `Warning ${ROR_THRESHOLDS.warning}°/h`,
+            value: `Warning ${warning}°/h`,
             fill: "var(--color-risk-high)",
             fontSize: 10,
             position: "insideTopLeft",
           }}
         />
         <ReferenceLine
-          y={ROR_THRESHOLDS.critical}
+          y={critical}
           stroke="var(--color-risk-extreme)"
           strokeDasharray="5 4"
           label={{
-            value: `Critical ${ROR_THRESHOLDS.critical}°/h`,
+            value: `Critical ${critical}°/h`,
             fill: "var(--color-risk-extreme)",
             fontSize: 10,
             position: "insideTopLeft",
@@ -68,7 +79,7 @@ export function RateOfRiseChart({ data }: { data: RorPoint[] }) {
         />
         <Area
           type="monotone"
-          dataKey="rorFPerHr"
+          dataKey="ror"
           name="Mesh avg rise"
           stroke="var(--color-risk-high)"
           strokeWidth={2}
@@ -76,7 +87,7 @@ export function RateOfRiseChart({ data }: { data: RorPoint[] }) {
         />
         <Line
           type="monotone"
-          dataKey="peakFPerHr"
+          dataKey="peak"
           name="Fastest node"
           stroke="var(--color-risk-extreme)"
           strokeWidth={1.5}

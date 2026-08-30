@@ -9,11 +9,18 @@ import {
   YAxis,
 } from "recharts";
 import type { TrendPoint } from "@/lib/sensors";
+import { tempUnit, tempValue, useUnits } from "@/lib/units";
 
 export function TrendChart({ data }: { data: TrendPoint[] }) {
+  const { system } = useUnits();
+  const series = data.map((p) => ({
+    ...p,
+    temperature: Math.round(tempValue(p.temperatureF, system) * 10) / 10,
+  }));
+
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+      <AreaChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
         <defs>
           <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-temp)" stopOpacity={0.45} />
@@ -46,8 +53,8 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
         />
         <Area
           type="monotone"
-          dataKey="temperatureF"
-          name="Temp °F"
+          dataKey="temperature"
+          name={`Temp ${tempUnit(system)}`}
           stroke="var(--color-temp)"
           strokeWidth={2}
           fill="url(#tempFill)"
