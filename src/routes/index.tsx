@@ -448,11 +448,10 @@ function DispatchPanel({
   route: ResponseRoute | null;
   loading: boolean;
 }) {
+  const { system } = useUnits();
   if (!station) return null;
   const straightKm = distanceKm(sensor, station);
-  const miles = route?.distanceMeters
-    ? route.distanceMeters / 1609.34
-    : straightKm * 0.621371;
+  const km = route?.distanceMeters ? route.distanceMeters / 1000 : straightKm;
   const eta = route?.durationSeconds ? Math.round(route.durationSeconds / 60) : null;
 
   return (
@@ -466,7 +465,7 @@ function DispatchPanel({
       <dl className="mt-3 grid grid-cols-2 gap-3 font-mono text-sm tabular-nums">
         <Detail
           label={route?.distanceMeters ? "Road distance" : "Direct distance"}
-          value={`${miles.toFixed(1)} mi`}
+          value={formatDistanceFromKm(km, system)}
         />
         <Detail label="Drive ETA" value={eta ? `${eta} min` : loading ? "…" : "—"} />
       </dl>
