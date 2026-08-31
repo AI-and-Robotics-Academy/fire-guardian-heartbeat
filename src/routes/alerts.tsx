@@ -54,6 +54,7 @@ function AlertsPage() {
   const [updatedAt, setUpdatedAt] = useState("");
   const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS);
   const [armed, setArmed] = useState(true);
+  const { system } = useUnits();
 
   useEffect(() => {
     const tick = () => {
@@ -106,21 +107,24 @@ function AlertsPage() {
             </span>
           </nav>
         </div>
-        <div className="panel px-4 py-3 text-right">
-          <p className="label-eyebrow">Last evaluation</p>
-          <p className="font-mono text-sm tabular-nums">{updatedAt || "syncing…"}</p>
-          <button
-            type="button"
-            onClick={() => setArmed((v) => !v)}
-            aria-pressed={armed}
-            className={`mt-2 rounded-full px-3 py-1 font-display text-xs tracking-[0.14em] uppercase transition-colors ${
-              armed
-                ? "bg-risk-low/20 text-risk-low"
-                : "border border-border text-muted-foreground"
-            }`}
-          >
-            {armed ? "Armed" : "Silenced"}
-          </button>
+        <div className="flex flex-col items-end gap-3">
+          <UnitToggle />
+          <div className="panel px-4 py-3 text-right">
+            <p className="label-eyebrow">Last evaluation</p>
+            <p className="font-mono text-sm tabular-nums">{updatedAt || "syncing…"}</p>
+            <button
+              type="button"
+              onClick={() => setArmed((v) => !v)}
+              aria-pressed={armed}
+              className={`mt-2 rounded-full px-3 py-1 font-display text-xs tracking-[0.14em] uppercase transition-colors ${
+                armed
+                  ? "bg-risk-low/20 text-risk-low"
+                  : "border border-border text-muted-foreground"
+              }`}
+            >
+              {armed ? "Armed" : "Silenced"}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -136,8 +140,8 @@ function AlertsPage() {
           Rate of rise — fire risk momentum
         </h2>
         <p className="mb-3 text-xs text-muted-foreground">
-          °F gained per hour over the last 12 hours. Crossing the dashed lines is what escalates a
-          node from watch to warning to critical.
+          {tempUnit(system)} gained per hour over the last 12 hours. Crossing the dashed lines is
+          what escalates a node from watch to warning to critical.
         </p>
         <RateOfRiseChart data={ror} />
       </section>
@@ -153,7 +157,7 @@ function AlertsPage() {
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <Slider
             label="Temperature at or above"
-            unit="°F"
+            display={formatTemp(thresholds.temperatureF, system, 0)}
             min={70}
             max={120}
             value={thresholds.temperatureF}
@@ -161,7 +165,7 @@ function AlertsPage() {
           />
           <Slider
             label="Humidity at or below"
-            unit="%"
+            display={`${thresholds.humidityPct} %`}
             min={5}
             max={50}
             value={thresholds.humidityPct}
@@ -169,7 +173,7 @@ function AlertsPage() {
           />
           <Slider
             label="Rate of rise at or above"
-            unit="°F/h"
+            display={`${rateValue(thresholds.rorFPerHr, system).toFixed(1)} ${rateUnit(system)}`}
             min={1}
             max={15}
             value={thresholds.rorFPerHr}
@@ -177,7 +181,7 @@ function AlertsPage() {
           />
           <Slider
             label="Composite risk at or above"
-            unit="pts"
+            display={`${thresholds.riskScore} pts`}
             min={20}
             max={100}
             value={thresholds.riskScore}
@@ -205,7 +209,12 @@ function AlertsPage() {
         ) : (
           <ul className="mt-3 space-y-3">
             {alerts.map((alert) => (
-              <AlertCard key={alert.id} alert={alert} sensors={sensors} />
+              <AlertCard
+                key={alert.id}
+                alert={alert}
+                sensors={sensors}
+                thresholds={thresholds}
+              />
             ))}
           </ul>
         )}
@@ -219,10 +228,42 @@ function AlertsPage() {
   );
 }
 
-function AlertCard({ alert, sensors }: { alert: SensorAlert; sensors: SensorReading[] }) {
+/** Re-renders a breach reading/threshold in the active measurement system. */
+function alertValues(
+  alert: SensorAlert,
+  sensor: SensorReading | undefined,
+  thresholds: AlertThresholds,
+  system: UnitSystem,
+) {
+  if (alert.parameter === "Temperature" && sensor) {
+    return {
+      reading: formatTemp(sensor.temperatureF, system),
+      threshold: `≥ ${formatTemp(thresholds.temperatureF, system, 0)}`,
+    };
+  }
+  if (alert.parameter === "Rate of rise" && sensor) {
+    return {
+      reading: formatRate(sensor.tempTrendFPerHr, system),
+      threshold: `≥ ${rateValue(thresholds.rorFPerHr, system).toFixed(1)} ${rateUnit(system)}`,
+    };
+  }
+  return { reading: alert.reading, threshold: alert.threshold };
+}
+
+function AlertCard({
+  alert,
+  sensors,
+  thresholds,
+}: {
+  alert: SensorAlert;
+  sensors: SensorReading[];
+  thresholds: AlertThresholds;
+}) {
+  const { system } = useUnits();
   const sensor = sensors.find((s) => s.id === alert.sensorId);
   const station = sensor ? nearestStation(sensor) : null;
   const style = SEVERITY_STYLE[alert.severity];
+  const values = alertValues(alert, sensor, thresholds, system);
 
   return (
     <li
@@ -243,8 +284,8 @@ function AlertCard({ alert, sensors }: { alert: SensorAlert; sensors: SensorRead
       <p className="mt-1 text-xs text-muted-foreground">{alert.zone}</p>
       <p className="mt-2 text-sm">{alert.message}</p>
       <dl className="mt-3 grid grid-cols-2 gap-3 font-mono text-sm tabular-nums sm:grid-cols-4">
-        <Cell label="Reading" value={alert.reading} />
-        <Cell label="Threshold" value={alert.threshold} />
+        <Cell label="Reading" value={values.reading} />
+        <Cell label="Threshold" value={values.threshold} />
         <Cell label="Risk score" value={String(alert.riskScore)} />
         <Cell label="Nearest unit" value={station ? station.city : "—"} />
       </dl>
@@ -272,14 +313,14 @@ function Tally({ label, value, accent }: { label: string; value: number; accent:
 
 function Slider({
   label,
-  unit,
+  display,
   min,
   max,
   value,
   onChange,
 }: {
   label: string;
-  unit: string;
+  display: string;
   min: number;
   max: number;
   value: number;
@@ -288,9 +329,7 @@ function Slider({
   return (
     <label className="block">
       <span className="label-eyebrow">{label}</span>
-      <span className="mt-1 block font-mono text-lg tabular-nums">
-        {value} {unit}
-      </span>
+      <span className="mt-1 block font-mono text-lg tabular-nums">{display}</span>
       <input
         type="range"
         min={min}
