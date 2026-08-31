@@ -209,7 +209,12 @@ function AlertsPage() {
         ) : (
           <ul className="mt-3 space-y-3">
             {alerts.map((alert) => (
-              <AlertCard key={alert.id} alert={alert} sensors={sensors} />
+              <AlertCard
+                key={alert.id}
+                alert={alert}
+                sensors={sensors}
+                thresholds={thresholds}
+              />
             ))}
           </ul>
         )}
@@ -308,14 +313,14 @@ function Tally({ label, value, accent }: { label: string; value: number; accent:
 
 function Slider({
   label,
-  unit,
+  display,
   min,
   max,
   value,
   onChange,
 }: {
   label: string;
-  unit: string;
+  display: string;
   min: number;
   max: number;
   value: number;
@@ -324,9 +329,7 @@ function Slider({
   return (
     <label className="block">
       <span className="label-eyebrow">{label}</span>
-      <span className="mt-1 block font-mono text-lg tabular-nums">
-        {value} {unit}
-      </span>
+      <span className="mt-1 block font-mono text-lg tabular-nums">{display}</span>
       <input
         type="range"
         min={min}
