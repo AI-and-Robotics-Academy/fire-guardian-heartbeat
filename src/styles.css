@@ -51,6 +51,8 @@
   --color-risk-extreme: var(--risk-extreme);
   --color-temp: var(--temp);
   --color-humidity: var(--humidity);
+  --color-auth-field: var(--auth-field);
+  --color-auth-terrain: var(--auth-terrain);
 
   --color-chart-1: var(--temp);
   --color-chart-2: var(--humidity);
@@ -96,6 +98,8 @@
   --risk-extreme: oklch(0.6 0.22 28);
   --temp: oklch(0.72 0.18 48);
   --humidity: oklch(0.72 0.13 205);
+  --auth-field: oklch(0.18 0.018 155);
+  --auth-terrain: oklch(0.52 0.035 155);
 }
 
 @layer base {
@@ -165,5 +169,21 @@
   }
   100% {
     box-shadow: 0 0 0 0 oklch(0.76 0.12 168 / 0%);
+  }
+}
+
+@utility terrain-grid {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    background-color: var(--color-auth-terrain);
+    opacity: 0.13;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='260' viewBox='0 0 420 260'%3E%3Cg fill='none' stroke='white' stroke-width='1'%3E%3Cpath d='M-20 40C55 5 83 81 151 51s109-66 184-20 81 21 120 0'/%3E%3Cpath d='M-28 66C43 30 89 109 158 77s103-59 176-18 82 24 124 1'/%3E%3Cpath d='M-30 95C48 53 86 135 164 102s103-51 172-17 80 31 124 4'/%3E%3Cpath d='M-23 126C48 82 100 157 171 128s100-45 164-15 78 36 126 7'/%3E%3Cpath d='M-19 159C48 112 107 182 179 155s91-37 154-10 78 37 126 11'/%3E%3Cpath d='M-17 195C48 145 117 207 184 184s88-32 149-9 77 39 127 17'/%3E%3Cpath d='M-12 230C63 179 121 240 193 215s84-24 142-4 71 40 123 20'/%3E%3Cellipse cx='267' cy='120' rx='54' ry='30'/%3E%3Cellipse cx='267' cy='120' rx='35' ry='18'/%3E%3C/g%3E%3C/svg%3E");
+    mask-size: 420px 260px;
   }
 }
