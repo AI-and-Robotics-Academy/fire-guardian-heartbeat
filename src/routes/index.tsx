@@ -25,6 +25,8 @@ import {
   type TrendPoint,
 } from "@/lib/sensors";
 import { UnitToggle } from "@/components/UnitToggle";
+import { ZoneCard } from "@/components/ZoneCard";
+import { Button } from "@/components/ui/button";
 import {
   formatDistanceFromKm,
   formatElevation,
@@ -69,7 +71,7 @@ function Dashboard() {
   const [ror, setRor] = useState<RorPoint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<string>("");
-  const [layer, setLayer] = useState<"heat" | "risk">("heat");
+  const [layer, setLayer] = useState<"heat" | "risk" | "zones">("heat");
   const [showStations, setShowStations] = useState(true);
   const [route, setRoute] = useState<ResponseRoute | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -235,36 +237,39 @@ function Dashboard() {
               <Satellite className="size-4 text-accent" aria-hidden />
               Live topography
             </h2>
-            <div className="flex items-center gap-1 rounded-full border border-border bg-surface-raised p-1">
-              {(["heat", "risk"] as const).map((mode) => (
-                <button
+            <div className="flex items-center gap-1 rounded-full border border-border bg-surface-raised p-1" role="tablist" aria-label="Map view">
+              {(["heat", "risk", "zones"] as const).map((mode) => (
+                <Button
                   key={mode}
                   type="button"
                   onClick={() => setLayer(mode)}
                   aria-pressed={layer === mode}
-                  className={`rounded-full px-3 py-1 font-display text-xs tracking-[0.14em] uppercase transition-colors ${
+                  role="tab"
+                  variant="ghost"
+                  size="sm"
+                  className={`h-7 rounded-full px-3 font-display text-xs uppercase ${
                     layer === mode
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {mode === "heat" ? "Heat" : "Risk"}
-                </button>
+                  {mode === "heat" ? "Heat" : mode === "risk" ? "Risk" : "Zones"}
+                </Button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setShowStations((v) => !v)}
-              aria-pressed={showStations}
-              className={`inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase transition-colors ${
-                showStations
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Navigation className="size-3" aria-hidden />
-              Stations
-            </button>
+            {layer !== "zones" && (
+              <Button
+                type="button"
+                onClick={() => setShowStations((v) => !v)}
+                aria-pressed={showStations}
+                variant="outline"
+                size="sm"
+                className={showStations ? "bg-accent text-accent-foreground" : "text-muted-foreground"}
+              >
+                <Navigation className="size-3" aria-hidden />
+                Stations
+              </Button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2">
             {layer === "heat" ? (
@@ -284,7 +289,7 @@ function Dashboard() {
                   </span>
                 ))}
               </>
-            ) : (
+            ) : layer === "risk" ? (
               <>
                 <span className="label-eyebrow mr-1">Composite risk</span>
                 <RiskBadge level="low" label="Low" />
@@ -292,22 +297,39 @@ function Dashboard() {
                 <RiskBadge level="high" label="High" />
                 <RiskBadge level="extreme" label="Extreme" />
               </>
+            ) : (
+              <>
+                <span className="label-eyebrow mr-1">One-mile monitoring zones</span>
+                <RiskBadge level="extreme" label="High" />
+                <RiskBadge level="high" label="Medium" />
+                <RiskBadge level="low" label="Low" />
+              </>
             )}
           </div>
           <div className="h-[460px] w-full bg-surface-raised">
-            <ClientOnly fallback={<MapSkeleton />}>
-              <Suspense fallback={<MapSkeleton />}>
-                <TerrainMap
-                  sensors={sensors}
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
-                  layer={layer}
-                  routePolyline={route?.polyline ?? null}
-                  dispatchStation={station}
-                  showStations={showStations}
-                />
-              </Suspense>
-            </ClientOnly>
+            {layer === "zones" ? (
+              <div className="h-full overflow-y-auto p-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {ranked.map((sensor) => (
+                    <ZoneCard key={sensor.id} sensor={sensor} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <ClientOnly fallback={<MapSkeleton />}>
+                <Suspense fallback={<MapSkeleton />}>
+                  <TerrainMap
+                    sensors={sensors}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                    layer={layer}
+                    routePolyline={route?.polyline ?? null}
+                    dispatchStation={station}
+                    showStations={showStations}
+                  />
+                </Suspense>
+              </ClientOnly>
+            )}
           </div>
         </div>
 
